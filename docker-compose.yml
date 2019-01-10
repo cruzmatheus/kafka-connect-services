@@ -1,0 +1,148 @@
+---
+version: '2'
+services:
+    zookeeper:
+      image: confluentinc/cp-zookeeper:5.1.0
+      hostname: zookeeper
+      container_name: zookeeper
+      network_mode: host
+      hostname: "${DOCKERHOST}"
+      ports:
+        - 2181:2181
+      environment:
+        ZOOKEEPER_CLIENT_PORT: 2181
+        ZOOKEEPER_TICK_TIME: 2000
+
+    kafka:
+      image: confluentinc/cp-kafka:5.1.0
+      hostname: kafka
+      container_name: kafka
+      network_mode: host
+      depends_on:
+        - zookeeper
+      ports:
+        - 9092:9092
+      environment:
+        KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+        KAFKA_ADVERTISED_HOST_NAME: "${DOCKERHOST}"
+        KAFKA_ZOOKEEPER_CONNECT: '${DOCKERHOST}:2181'
+        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${DOCKERHOST}:9092
+        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+        KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+        KAFKA_DELETE_TOPIC_ENABLE: "true"
+
+    schema-registry:
+      image: confluentinc/cp-schema-registry:5.1.0
+      container_name: schema-registry
+      network_mode: host
+      depends_on:
+        - zookeeper
+        - kafka
+      ports:
+        - 8081:8081
+      environment:
+        SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: "${DOCKERHOST}:2181"
+        SCHEMA_REGISTRY_HOST_NAME: localhost 
+        SCHEMA_REGISTRY_LISTENERS: http://localhost:8081
+
+    kafka-connect:
+      image: confluentinc/cp-kafka-connect:latest
+      container_name: kafka-connect
+      network_mode: host
+      depends_on:
+        - zookeeper
+        - kafka
+        - schema-registry
+        - db
+      ports:
+        - 8083:8083
+      environment:
+        CONNECT_BOOTSTRAP_SERVERS: "${DOCKERHOST}:9092"
+        CONNECT_REST_PORT: 8083
+        CONNECT_GROUP_ID: "quickstart-avro"
+        CONNECT_CONFIG_STORAGE_TOPIC: "quickstart-avro-config"
+        CONNECT_OFFSET_STORAGE_TOPIC: "quickstart-avro-offsets"
+        CONNECT_STATUS_STORAGE_TOPIC: "quickstart-avro-status"
+        CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+        CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+        CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+        CONNECT_KEY_CONVERTER: "io.confluent.connect.avro.AvroConverter"
+        CONNECT_VALUE_CONVERTER: "io.confluent.connect.avro.AvroConverter"
+        CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: "http://localhost:8081"
+        CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://localhost:8081"
+        CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+        CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+        CONNECT_REST_ADVERTISED_HOST_NAME: "${DOCKERHOST}"
+        CONNECT_LOG4J_ROOT_LOGLEVEL: DEBUG
+        CONNECT_PLUGIN_PATH: /usr/share/java,/etc/kafka-connect/jars
+      volumes:
+        - /tmp/kafka-connect-example/jars:/etc/kafka-connect/jars
+        
+    rest_proxy:
+      image: confluentinc/cp-kafka-rest:latest
+      hostname: rest_proxy
+      container_name: rest_proxy
+      network_mode: host
+      depends_on:
+        - zookeeper
+        - kafka
+        - schema-registry
+      ports:
+        - "8082:8082"
+      environment:
+        KAFKA_REST_ZOOKEEPER_CONNECT: ${DOCKERHOST}:2181
+        KAFKA_REST_LISTENERS: http://${DOCKERHOST}:8082
+        KAFKA_REST_SCHEMA_REGISTRY_URL: http://${DOCKERHOST}:8081
+        KAFKA_REST_HOST_NAME: rest_proxy
+        KAFKA_REST_BOOTSTRAP_SERVERS: PLAINTEXT://${DOCKERHOST}:9092
+        KAFKA_REST_CONSUMER_REQUEST_TIMEOUT_MS: 30000
+        KAFKA_REST_ACCESS_CONTROL_ALLOW_METHODS: 'GET,POST,PUT,DELETE,OPTIONS'
+        KAFKA_REST_ACCESS_CONTROL_ALLOW_ORIGN: '*'
+
+    kafka-topics-ui:
+      image: landoop/kafka-topics-ui:0.9.3
+      hostname: kafka-topics-ui
+      container_name: kafka-topics-ui
+      network_mode: host
+      ports:
+        - "8000:8000"
+      environment:
+        KAFKA_REST_PROXY_URL: http://${DOCKERHOST}:8082
+        SCHEMAREGISTRY_UI_URL: http://${DOCKERHOST}:8081
+        PROXY: 'true'
+      depends_on:
+        - zookeeper
+        - kafka
+        - schema-registry
+        - rest_proxy
+
+
+    kafka-connect-ui:
+      image: landoop/kafka-connect-ui
+      hostname: kafka-connect-ui
+      container_name: kafka-connect-ui
+      network_mode: host
+      ports:
+        - "8001:8001"
+      environment:
+        # KAFKA_CONNECT: http://${DOCKERHOST}:8083
+        CONNECT_URL: http://${DOCKERHOST}:8083
+        KAFKA_TOPICS_UI: http://${DOCKERHOST}:8000
+        KAFKA_TOPICS_UI_ENABLED: "true"
+        PORT: 8001
+      depends_on:
+        - zookeeper
+        - kafka
+        - schema-registry
+        - rest_proxy
+        - kafka-connect
+
+    db:
+      container_name: buyer-cost-mysql
+      image: mysql
+      command: --default-authentication-plugin=mysql_native_password
+      restart: always
+      network_mode: host
+      environment:
+        MYSQL_ROOT_PASSWORD: example
+        MYSQL_DATABASE: business_condition
