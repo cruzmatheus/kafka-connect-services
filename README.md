@@ -10,7 +10,7 @@ Running locally
 To start or stop kafka connect locally, just run the files **start.sh/stop.sh**. Place the MySQL JDBC driver in `/tmp/kafka-connect-example/jars`
 
 
-Testing messasge consumer
+Testing message consumer
 -----------------------------
 
 Run the command bellow to send Avro messages to the **users** topic.
