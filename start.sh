@@ -14,7 +14,7 @@ curl -XPOST --header "Content-Type: application/json" ${DOCKERHOST}:8083/connect
         "name": "sink",    
         "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",    
         "tasks.max": 1,    
-        "connection.url": "jdbc:mysql://13.0.0.1:3306/business_condition",
+        "connection.url": "jdbc:mysql://13.0.0.1:3306/example",
         "connection.user": "root",    
         "connection.password": "example",    
         "topics": "balance",
