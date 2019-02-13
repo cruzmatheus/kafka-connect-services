@@ -138,11 +138,11 @@ services:
         - kafka-connect
 
     db:
-      container_name: buyer-cost-mysql
+      container_name: example-mysql
       image: mysql
       command: --default-authentication-plugin=mysql_native_password
       restart: always
       network_mode: host
       environment:
         MYSQL_ROOT_PASSWORD: example
-        MYSQL_DATABASE: business_condition
+        MYSQL_DATABASE: example
