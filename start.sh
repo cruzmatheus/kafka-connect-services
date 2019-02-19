@@ -5,7 +5,7 @@ export DOCKERHOST=$(ifconfig | grep -E "([0-9]{1,3}\.){3}[0-9]{1,3}" | grep -v 1
 docker-compose up -d --force-recreate &
 
 # time=40
-# echo -e "\e[32mAguardando ${time}s para a subida dos servicos\e[0m"
+# echo -e "\e[32mWaiting ${time}s for the services to start\e[0m"
 # sleep $time
 
 curl -XPOST --header "Content-Type: application/json" ${DOCKERHOST}:8083/connectors -d '{  
@@ -23,4 +23,4 @@ curl -XPOST --header "Content-Type: application/json" ${DOCKERHOST}:8083/connect
 }'
 
 echo ""
-echo -e "\e[32mServicos iniciados\e[0m"
+echo -e "\e[32mThe services were stopped\e[0m"
