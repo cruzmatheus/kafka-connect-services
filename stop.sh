@@ -7,4 +7,4 @@ docker-compose down
 time=5
 sleep $time
 
-echo -e "\e[32mServicos parados\e[0m"
+echo -e "\e[32mThe services were stopped\e[0m"
